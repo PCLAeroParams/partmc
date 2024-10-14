@@ -44,7 +44,7 @@ contains
     use module_data_mosaic_main, only: tbeg_sec, dt_sec, rlon, rlat, &
          zalt_m, RH, te, pr_atm, cair_mlc, cair_molm3, ppb, avogad, &
          mmode, mgas, maer, mcld, maeroptic, mshellcore, &
-         msolar, mphoto, lun_aeroptic, naerbin
+         msolar, mphoto, lun_aeroptic, naerbin, write_validation
 #endif
 
     !> Environment state.
@@ -73,6 +73,8 @@ contains
     naerbin = 1
     call AllocateMemory()
 
+    ! write validation data
+    write_validation=1
     ! parameters
     mmode = 1               ! 1 = time integration, 2 = parametric analysis
     mgas = 1                ! 1 = gas chem on, 0 = gas chem off
@@ -145,7 +147,7 @@ contains
 
   !> Map all data PartMC -> MOSAIC.
   subroutine mosaic_from_partmc(env_state, aero_data, &
-       aero_state, gas_data, gas_state)
+       aero_state, gas_data, gas_state, i_time_in)
 
 #ifdef PMC_USE_MOSAIC
     use module_data_mosaic_aero, only: nbin_a, aer, num_a, jhyst_leg, &
@@ -154,7 +156,7 @@ contains
 #endif
          jtotal, water_a
 
-    use module_data_mosaic_main, only: tbeg_sec, tcur_sec, tmid_sec, &
+    use module_data_mosaic_main, only: i_time, tbeg_sec, tcur_sec, tmid_sec, &
          dt_sec, dt_min, dt_aeroptic_min, RH, te, pr_atm, cnn, cair_mlc, &
          cair_molm3, ppb, avogad, msolar, naerbin
 #endif
@@ -169,6 +171,7 @@ contains
     type(gas_data_t), intent(in) :: gas_data
     !> Gas state.
     type(gas_state_t), intent(in) :: gas_state
+    integer, intent(in) :: i_time_in
 
 #ifdef PMC_USE_MOSAIC
     ! local variables
@@ -187,6 +190,7 @@ contains
     end interface
 
     ! update time variables
+    i_time = i_time_in
     tmar21_sec = real((79*24 + 12)*3600, kind=dp)    ! noon, mar 21, UTC
     tcur_sec = real(tbeg_sec, kind=dp) + env_state%elapsed_time
     ! current (old) time since the beg of year 00:00, UTC (s)
@@ -409,7 +413,7 @@ contains
   !! really matters, however. Because of this mosaic_aero_optical() is
   !! currently disabled.
   subroutine mosaic_timestep(env_state, aero_data, aero_state, gas_data, &
-       gas_state, do_optical, uuid)
+       gas_state, do_optical, uuid, i_time)
 
 #ifdef PMC_USE_MOSAIC
     use module_data_mosaic_main, only: msolar
@@ -429,6 +433,7 @@ contains
     logical, intent(in) :: do_optical
     !> UUID for this simulation.
     character(len=PMC_UUID_LEN), intent(in) :: uuid
+    integer, intent(in) :: i_time
 
 #ifdef PMC_USE_MOSAIC
     ! MOSAIC function interfaces
@@ -449,7 +454,7 @@ contains
 
     ! map PartMC -> MOSAIC
     call mosaic_from_partmc(env_state, aero_data, aero_state, gas_data, &
-         gas_state)
+         gas_state, i_time)
 
     if (msolar == 1) then
       call SolarZenithAngle
@@ -597,7 +602,7 @@ contains
 
     ! map PartMC -> MOSAIC
     call mosaic_from_partmc(env_state, aero_data, aero_state, &
-         gas_data, gas_state)
+         gas_data, gas_state,i_time)
 
     call aerosol_optical
 
@@ -655,7 +660,7 @@ contains
 
     ! map PartMC -> MOSAIC
     call mosaic_from_partmc(env_state, aero_data, aero_state, &
-         gas_data, gas_state)
+         gas_data, gas_state, i_time)
 
     RH_pc = RH                                ! RH(%)
     aH2O = 0.01*RH_pc                         ! aH2O (aerosol water activity)
