@@ -74,7 +74,7 @@ contains
     call AllocateMemory()
 
     ! write validation data
-    write_validation=1
+    write_validation(:)=1
     ! parameters
     mmode = 1               ! 1 = time integration, 2 = parametric analysis
     mgas = 1                ! 1 = gas chem on, 0 = gas chem off
